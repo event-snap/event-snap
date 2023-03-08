@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 // pub mod structs;
-// mod macros;
+mod macros;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
