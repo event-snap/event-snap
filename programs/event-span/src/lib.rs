@@ -16,6 +16,7 @@ pub mod event_span {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>, nonce: u8) -> Result<()> {
+        // initialize state and initalize event buffer
         let state = &mut ctx.accounts.state.load_init()?;
         let event_buffer = *ctx.accounts.event_buffer.to_account_info().key;
 
@@ -25,10 +26,16 @@ pub mod event_span {
             program_authority: *ctx.accounts.program_authority.key,
             eventsnap_admin: *ctx.accounts.admin.key,
             event_buffer,
+            event_buffer_bump: *ctx.bumps.get("event_buffer").unwrap(),
         };
 
         Ok(())
     }
+
+    // pub fn deposit_event_buffer(ctx: Context<DepositEventBuffer>) -> Result<()> {
+    //     // transfer SOL instead of SPL
+    //     Ok(())
+    // }
 
     // pub fn withdraw_event_buffer(ctx: Context<WithdrawEventBuffer>) -> Result<()> {
     //     Ok(())
@@ -38,6 +45,7 @@ pub mod event_span {
 // TODO: rent in not required
 // TODO: passing program_authority is not required
 // TODO: I can use Account with empty strcut insted of UncheckedAccount
+// TODO: Remove "CHECK:" from system_program
 
 #[derive(Accounts)]
 #[instruction( nonce: u8)]
@@ -63,6 +71,19 @@ pub struct Initialize<'info> {
     #[account(address = system_program::ID)]
     pub system_program: AccountInfo<'info>,
 }
+
+// #[derive(Accounts)]
+// pub struct DepositEventBuffer<'info> {
+//     #[account(mut, seeds = [EVNET_BUFFER.as_bytes()])]
+//     pub depositor: Signer<'info>,
+
+//     #[account(mut)]
+//     pub event_buffer: UncheckedAccount<'info>,
+//     pub rent: Sysvar<'info, Rent>,
+//     /// CHECK: safe as constant
+//     #[account(address = system_program::ID)]
+//     pub system_program: AccountInfo<'info>,
+// }
 
 // #[derive(Accounts)]
 // pub struct WithdrawEventBuffer<'info> {
