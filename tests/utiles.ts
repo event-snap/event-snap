@@ -1,5 +1,5 @@
-import { utils } from '@project-serum/anchor'
-import { PublicKey } from "@solana/web3.js"
+import { AnchorProvider, utils } from '@project-serum/anchor'
+import { ConfirmOptions, Connection, Keypair, PublicKey, sendAndConfirmRawTransaction, Transaction } from "@solana/web3.js"
 
 export const SEED = 'EVENTSNAP'
 export const STATE_SEED = 'STATE'
@@ -23,7 +23,27 @@ export const getStateAddress = async (programId: PublicKey) => {
     )
 
     return {
-        address,
+        state: address,
         bump
     }
+}
+
+export const signAndSend = async (
+    tx: Transaction,
+    signers: Keypair[],
+    connection: Connection,
+    opts?: ConfirmOptions
+) => {
+    tx.setSigners(...signers.map(s => s.publicKey))
+    const blockhash = await connection.getRecentBlockhash(
+        opts?.commitment ?? AnchorProvider.defaultOptions().commitment
+    )
+    tx.recentBlockhash = blockhash.blockhash
+    tx.partialSign(...signers)
+    const rawTx = tx.serialize()
+    return await sendAndConfirmRawTransaction(
+        connection,
+        rawTx,
+        opts ?? AnchorProvider.defaultOptions()
+    )
 }
