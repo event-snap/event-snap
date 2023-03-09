@@ -6,8 +6,7 @@ mod macros;
 pub mod structs;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
-// TODO: use this constants
-const SEED: &str = "EVENTSPAN";
+const AUTHORITY_SEED: &str = "EVENTSNAP";
 const STATE_SEED: &str = "STATE";
 
 #[program]
@@ -31,12 +30,12 @@ pub mod event_span {
 #[derive(Accounts)]
 #[instruction( nonce: u8)]
 pub struct Initialize<'info> {
-    #[account(init, seeds = [b"STATE".as_ref()], bump, space = State::LEN, payer = admin)]
+    #[account(init, seeds = [STATE_SEED.as_bytes().as_ref()], bump, space = State::LEN, payer = admin)]
     pub state: AccountLoader<'info, State>,
     #[account(mut)]
     pub admin: Signer<'info>,
     /// CHECK: safe as seed checked
-    #[account(seeds = [b"EVENTSPAN".as_ref()], bump = nonce)]
+    #[account(seeds = [AUTHORITY_SEED.as_bytes().as_ref()], bump = nonce)]
     pub program_authority: AccountInfo<'info>,
     pub rent: Sysvar<'info, Rent>,
     /// CHECK: safe as constant
