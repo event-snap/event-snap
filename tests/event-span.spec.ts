@@ -35,7 +35,12 @@ describe("event-span", () => {
     })
     await signAndSend(new Transaction().add(initIx), [admin], connection)
 
-    const depositIx = program.instruction.depositEventBuffer(new BN(solAmount / 10), {
+    const balanceBefore = await connection.getBalance(eventBuffer)
+    const adminBefore = await connection.getBalance(admin.publicKey)
+    console.log(`buffer amount = ${balanceBefore}`)
+    console.log(`admin amount = ${adminBefore}`)
+
+    const depositIx = program.instruction.depositEventBuffer(new BN(300000000), {
       accounts: {
         state,
         depositor: admin.publicKey,
@@ -45,5 +50,10 @@ describe("event-span", () => {
       }
     })
     await signAndSend(new Transaction().add(depositIx), [admin], connection)
+
+    const balanceAfter = await connection.getBalance(eventBuffer)
+    const adminAfter = await connection.getBalance(admin.publicKey)
+    console.log(`buffer amount = ${balanceAfter}`)
+    console.log(`admin amount = ${adminAfter}`)
   });
 });
