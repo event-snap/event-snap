@@ -35,36 +35,18 @@ pub mod event_span {
     }
 
     pub fn deposit_event_buffer(ctx: Context<DepositEventBuffer>, amount: u64) -> Result<()> {
-        // transfer SOL instead of SPL
-
-        // let cpi_context = CpiContext::new(
-        //     ctx.accounts.system_program.to_account_info(),
-        //     system_program::Transfer {
-        //         from: ctx.accounts.depositor.clone(),
-        //         to: ctx.accounts.event_buffer.clone(),
-        //     },
-        // );
-        // system_program::transfer(cpi_context, amount)?;
-
-        system_instruction::transfer(
+        let ix = system_instruction::transfer(
             &ctx.accounts.depositor.key(),
             &ctx.accounts.event_buffer.key(),
             amount,
         );
-
-        // PURE SOLANA
-        // let ix = anchor_lang::solana_program::system_instruction::transfer(
-        //     &ctx.accounts.from.key(),
-        //     &ctx.accounts.to.key(),
-        //     amount,
-        // );
-        // anchor_lang::solana_program::program::invoke(
-        //     &ix,
-        //     &[
-        //         ctx.accounts.from.to_account_info(),
-        //         ctx.accounts.to.to_account_info(),
-        //     ],
-        // );
+        anchor_lang::solana_program::program::invoke(
+            &ix,
+            &[
+                ctx.accounts.depositor.to_account_info(),
+                ctx.accounts.event_buffer.to_account_info(),
+            ],
+        )?;
 
         Ok(())
     }
