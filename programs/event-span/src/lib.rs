@@ -53,20 +53,7 @@ pub mod event_span {
 
     pub fn withdraw_event_buffer(ctx: Context<WithdrawEventBuffer>, amount: u64) -> Result<()> {
         let state = ctx.accounts.state.load()?;
-        msg!(
-            "enevt buffer lamports: {:?}",
-            ctx.accounts.event_buffer.lamports()
-        );
-        msg!(
-            "program lamports: {:?}",
-            ctx.accounts.program_authority.lamports()
-        );
-
-        // let signer: &[&[&[u8]]] = get_signer!(state.nonce);
-
-        // let signer: &[&[&[u8]]] = &[&[EVNET_BUFFER.as_bytes(), &[state.nonce]]];
-        let signer: &[&[&[u8]]] = &[&[EVNET_BUFFER.as_bytes(), &[state.event_buffer_bump]]];
-        // let signer: &[&[&[u8]]] = &[&[AUTHORITY_SEED.as_bytes(), &[state.nonce]]];
+        let signer: &[&[&[u8]]] = get_signer!(EVNET_BUFFER, state.event_buffer_bump);
 
         let ix = system_instruction::transfer(
             &ctx.accounts.event_buffer.key(),
@@ -104,9 +91,6 @@ pub struct Initialize<'info> {
     /// CHECK: safe as seed checked
     #[account(
         mut,
-        // init,
-        // payer = admin,
-        // space = 0,
         seeds = [EVNET_BUFFER.as_bytes()],
         bump,
     )]

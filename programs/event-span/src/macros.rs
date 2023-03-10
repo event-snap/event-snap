@@ -1,8 +1,8 @@
 #[macro_export]
 macro_rules! get_signer {
-    ($nonce: expr) => {
-        &[&[SEED.as_bytes(), &[$nonce]]]
-    };
+    ($seed:expr, $nonce:expr) => {{
+        &[&[$seed.as_bytes(), &[$nonce]]]
+    }};
 }
 
 #[macro_export]
