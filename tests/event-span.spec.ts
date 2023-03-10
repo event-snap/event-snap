@@ -35,12 +35,15 @@ describe("event-span", () => {
     })
     await signAndSend(new Transaction().add(initIx), [admin], connection)
 
-    const balanceBefore = await connection.getBalance(eventBuffer)
-    const adminBefore = await connection.getBalance(admin.publicKey)
-    console.log(`buffer amount = ${balanceBefore}`)
-    console.log(`admin amount = ${adminBefore}`)
+    {
+      const balanceAmount = await connection.getBalance(eventBuffer)
+      const adminAmount = await connection.getBalance(admin.publicKey)
+      console.log(`balance amount = ${balanceAmount}`)
+      console.log(`admin amount = ${adminAmount}`)
+    }
 
-    const depositIx = program.instruction.depositEventBuffer(new BN(300000000), {
+    const amountToDeposit = new BN(300000000)
+    const depositIx = program.instruction.depositEventBuffer(amountToDeposit, {
       accounts: {
         state,
         depositor: admin.publicKey,
@@ -51,9 +54,33 @@ describe("event-span", () => {
     })
     await signAndSend(new Transaction().add(depositIx), [admin], connection)
 
-    const balanceAfter = await connection.getBalance(eventBuffer)
-    const adminAfter = await connection.getBalance(admin.publicKey)
-    console.log(`buffer amount = ${balanceAfter}`)
-    console.log(`admin amount = ${adminAfter}`)
+    {
+      const balanceAmount = await connection.getBalance(eventBuffer)
+      const adminAmount = await connection.getBalance(admin.publicKey)
+      console.log(`balance amount = ${balanceAmount}`)
+      console.log(`admin amount = ${adminAmount}`)
+    }
+
+
+    // TODO: allow to withdraw only by admin 
+
+    const withdrawIx = program.instruction.withdrawEventBuffer(amountToDeposit, {
+      accounts: {
+        state,
+        eventBuffer,
+        admin: admin.publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        programAuthority,
+        systemProgram: SystemProgram.programId
+      }
+    })
+    await signAndSend(new Transaction().add(withdrawIx), [admin], connection)
+
+    {
+      const balanceAmount = await connection.getBalance(eventBuffer)
+      const adminAmount = await connection.getBalance(admin.publicKey)
+      console.log(`balance amount = ${balanceAmount}`)
+      console.log(`admin amount = ${adminAmount}`)
+    }
   });
 });
