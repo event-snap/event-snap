@@ -13,6 +13,8 @@ const EVNET_BUFFER: &str = "EVENT_BUFFER";
 
 #[program]
 pub mod event_span {
+    use anchor_lang::solana_program::system_instruction;
+
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>, nonce: u8) -> Result<()> {
@@ -32,10 +34,40 @@ pub mod event_span {
         Ok(())
     }
 
-    // pub fn deposit_event_buffer(ctx: Context<DepositEventBuffer>) -> Result<()> {
-    //     // transfer SOL instead of SPL
-    //     Ok(())
-    // }
+    pub fn deposit_event_buffer(ctx: Context<DepositEventBuffer>, amount: u64) -> Result<()> {
+        // transfer SOL instead of SPL
+
+        // let cpi_context = CpiContext::new(
+        //     ctx.accounts.system_program.to_account_info(),
+        //     system_program::Transfer {
+        //         from: ctx.accounts.depositor.clone(),
+        //         to: ctx.accounts.event_buffer.clone(),
+        //     },
+        // );
+        // system_program::transfer(cpi_context, amount)?;
+
+        system_instruction::transfer(
+            &ctx.accounts.depositor.key(),
+            &ctx.accounts.event_buffer.key(),
+            amount,
+        );
+
+        // PURE SOLANA
+        // let ix = anchor_lang::solana_program::system_instruction::transfer(
+        //     &ctx.accounts.from.key(),
+        //     &ctx.accounts.to.key(),
+        //     amount,
+        // );
+        // anchor_lang::solana_program::program::invoke(
+        //     &ix,
+        //     &[
+        //         ctx.accounts.from.to_account_info(),
+        //         ctx.accounts.to.to_account_info(),
+        //     ],
+        // );
+
+        Ok(())
+    }
 
     // pub fn withdraw_event_buffer(ctx: Context<WithdrawEventBuffer>) -> Result<()> {
     //     Ok(())
@@ -72,18 +104,21 @@ pub struct Initialize<'info> {
     pub system_program: AccountInfo<'info>,
 }
 
-// #[derive(Accounts)]
-// pub struct DepositEventBuffer<'info> {
-//     #[account(mut, seeds = [EVNET_BUFFER.as_bytes()])]
-//     pub depositor: Signer<'info>,
-
-//     #[account(mut)]
-//     pub event_buffer: UncheckedAccount<'info>,
-//     pub rent: Sysvar<'info, Rent>,
-//     /// CHECK: safe as constant
-//     #[account(address = system_program::ID)]
-//     pub system_program: AccountInfo<'info>,
-// }
+#[derive(Accounts)]
+#[instruction( amount: u64)]
+pub struct DepositEventBuffer<'info> {
+    #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
+    pub state: AccountLoader<'info, State>,
+    #[account(mut)]
+    pub depositor: Signer<'info>,
+    /// CHECK: safe as seed checked
+    #[account(mut, seeds = [EVNET_BUFFER.as_bytes()], bump = state.load()?.event_buffer_bump)]
+    pub event_buffer: UncheckedAccount<'info>,
+    pub rent: Sysvar<'info, Rent>,
+    /// CHECK: safe as constant
+    #[account(address = system_program::ID)]
+    pub system_program: AccountInfo<'info>,
+}
 
 // #[derive(Accounts)]
 // pub struct WithdrawEventBuffer<'info> {
