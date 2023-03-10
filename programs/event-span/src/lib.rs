@@ -51,9 +51,39 @@ pub mod event_span {
         Ok(())
     }
 
-    // pub fn withdraw_event_buffer(ctx: Context<WithdrawEventBuffer>) -> Result<()> {
-    //     Ok(())
-    // }
+    pub fn withdraw_event_buffer(ctx: Context<WithdrawEventBuffer>, amount: u64) -> Result<()> {
+        let state = ctx.accounts.state.load()?;
+        msg!(
+            "enevt buffer lamports: {:?}",
+            ctx.accounts.event_buffer.lamports()
+        );
+        msg!(
+            "program lamports: {:?}",
+            ctx.accounts.program_authority.lamports()
+        );
+
+        // let signer: &[&[&[u8]]] = get_signer!(state.nonce);
+
+        // let signer: &[&[&[u8]]] = &[&[EVNET_BUFFER.as_bytes(), &[state.nonce]]];
+        let signer: &[&[&[u8]]] = &[&[EVNET_BUFFER.as_bytes(), &[state.event_buffer_bump]]];
+        // let signer: &[&[&[u8]]] = &[&[AUTHORITY_SEED.as_bytes(), &[state.nonce]]];
+
+        let ix = system_instruction::transfer(
+            &ctx.accounts.event_buffer.key(),
+            &ctx.accounts.admin.key(),
+            amount,
+        );
+        anchor_lang::solana_program::program::invoke_signed(
+            &ix,
+            &[
+                ctx.accounts.event_buffer.to_account_info(),
+                ctx.accounts.admin.to_account_info(),
+            ],
+            signer,
+        )?;
+
+        Ok(())
+    }
 }
 
 // TODO: rent in not required
@@ -73,9 +103,10 @@ pub struct Initialize<'info> {
     pub program_authority: AccountInfo<'info>,
     /// CHECK: safe as seed checked
     #[account(
-        init,
-        payer = admin,
-        space = 0,
+        mut,
+        // init,
+        // payer = admin,
+        // space = 0,
         seeds = [EVNET_BUFFER.as_bytes()],
         bump,
     )]
@@ -102,23 +133,38 @@ pub struct DepositEventBuffer<'info> {
     pub system_program: AccountInfo<'info>,
 }
 
-// #[derive(Accounts)]
-// pub struct WithdrawEventBuffer<'info> {
-//     // #[account(init, seeds = [STATE_SEED.as_bytes().as_ref()], bump, space = State::LEN, payer = admin)]
-//     // pub state: AccountLoader<'info, State>,
-//     // #[account(mut)]
-//     // pub admin: Signer<'info>,
-//     // /// CHECK: safe as seed checked
-//     // #[account(seeds = [AUTHORITY_SEED.as_bytes().as_ref()], bump = nonce)]
-//     // pub program_authority: AccountInfo<'info>,
+#[derive(Accounts)]
+pub struct WithdrawEventBuffer<'info> {
+    #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
+    pub state: AccountLoader<'info, State>,
+    #[account(mut)]
+    pub admin: Signer<'info>,
+    /// CHECK: safe as seed checked
+    #[account(mut, seeds = [EVNET_BUFFER.as_bytes()], bump = state.load()?.event_buffer_bump)]
+    pub event_buffer: UncheckedAccount<'info>,
+    pub rent: Sysvar<'info, Rent>,
+    /// CHECK: safe as constant
+    #[account(address = system_program::ID)]
+    pub system_program: AccountInfo<'info>,
 
-//     // // #[account(init,
-//     // //     token::authority = authority,
-//     // //     payer = payer,
-//     // // )]
-//     // // pub event_buffer: Account<'info, >,
-//     // pub rent: Sysvar<'info, Rent>,
-//     // /// CHECK: safe as constant
-//     // #[account(address = system_program::ID)]
-//     // pub system_program: AccountInfo<'info>,
-// }
+    /// CHECK: safe as seed checked
+    #[account(mut, seeds = [AUTHORITY_SEED.as_bytes().as_ref()], bump = state.load()?.nonce)]
+    pub program_authority: AccountInfo<'info>,
+    // #[account(init, seeds = [STATE_SEED.as_bytes().as_ref()], bump, space = State::LEN, payer = admin)]
+    // pub state: AccountLoader<'info, State>,
+    // #[account(mut)]
+    // pub admin: Signer<'info>,
+    // /// CHECK: safe as seed checked
+    // #[account(seeds = [AUTHORITY_SEED.as_bytes().as_ref()], bump = nonce)]
+    // pub program_authority: AccountInfo<'info>,
+
+    // // #[account(init,
+    // //     token::authority = authority,
+    // //     payer = payer,
+    // // )]
+    // // pub event_buffer: Account<'info, >,
+    // pub rent: Sysvar<'info, Rent>,
+    // /// CHECK: safe as constant
+    // #[account(address = system_program::ID)]
+    // pub system_program: AccountInfo<'info>,
+}
