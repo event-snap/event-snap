@@ -71,6 +71,12 @@ pub mod event_span {
 
         Ok(())
     }
+
+    pub fn trigger_events_creation(ctx: Context<TriggerEventsCreation>) -> Result<()> {
+        msg!("trigger_events_creation");
+
+        Ok(())
+    }
 }
 
 // TODO: rent in not required
@@ -118,6 +124,7 @@ pub struct DepositEventBuffer<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction( amount: u64)]
 pub struct WithdrawEventBuffer<'info> {
     #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
     pub state: AccountLoader<'info, State>,
@@ -151,4 +158,15 @@ pub struct WithdrawEventBuffer<'info> {
     // /// CHECK: safe as constant
     // #[account(address = system_program::ID)]
     // pub system_program: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct TriggerEventsCreation<'info> {
+    #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
+    pub state: AccountLoader<'info, State>,
+    /// CHECK: safe as seed checked
+    #[account(mut, seeds = [EVNET_BUFFER.as_bytes()], bump = state.load()?.event_buffer_bump)]
+    pub event_buffer: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
 }

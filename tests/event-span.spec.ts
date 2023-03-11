@@ -93,5 +93,14 @@ describe("event-span", () => {
       console.log(`balance amount = ${balanceAmount}`)
       console.log(`admin amount = ${adminAmount}`)
     }
+
+    const triggerIx = program.instruction.triggerEventsCreation({
+      accounts: {
+        state,
+        eventBuffer,
+        payer: noAdmin.publicKey,
+      }
+    })
+    await signAndSend(new Transaction().add(triggerIx), [noAdmin], connection)
   });
 });
