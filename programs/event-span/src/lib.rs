@@ -121,7 +121,7 @@ pub struct DepositEventBuffer<'info> {
 pub struct WithdrawEventBuffer<'info> {
     #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
     pub state: AccountLoader<'info, State>,
-    #[account(mut)]
+    #[account(mut, constraint = admin.key() == state.load()?.eventsnap_admin)] // TODO: admin error
     pub admin: Signer<'info>,
     /// CHECK: safe as seed checked
     #[account(mut, seeds = [EVNET_BUFFER.as_bytes()], bump = state.load()?.event_buffer_bump)]
