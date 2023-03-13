@@ -41,6 +41,17 @@ export const getEventBufferAddress = async (programId: PublicKey) => {
     }
 }
 
+export const getEventAddress = async (programId: PublicKey) => {
+    const [address, bump] = await PublicKey.findProgramAddress(
+        [Buffer.from(utils.bytes.utf8.encode(EVNET_BUFFER))],
+        programId
+    )
+    return {
+        eventAddress: address,
+        bump
+    }
+}
+
 export const signAndSend = async (
     tx: Transaction,
     signers: Keypair[],
