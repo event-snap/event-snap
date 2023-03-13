@@ -2,7 +2,7 @@ import * as anchor from "@project-serum/anchor";
 import { BN, Program } from "@project-serum/anchor";
 import { EventSpan } from "../target/types/event_span";
 import { Keypair, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from '@solana/web3.js'
-import { assertThrowsAsync, getEventBufferAddress, getProgramAuthority, getStateAddress, signAndSend, sleep } from "./utiles";
+import { assertThrowsAsync, getEventAddress, getEventBufferAddress, getProgramAuthority, getStateAddress, signAndSend, sleep } from "./utiles";
 
 describe("event-span", () => {
   // Configure the client to use the local cluster.
@@ -94,13 +94,18 @@ describe("event-span", () => {
       console.log(`admin amount = ${adminAmount}`)
     }
 
-    const triggerIx = program.instruction.triggerEventsCreation({
+    const { eventAddress, bump } = await getEventAddress(program.programId)
+    console.log(eventAddress.toString())
+    console.log(bump)
+
+    const trigger2Ix = program.instruction.triggerEventsCreationTwo({
       accounts: {
-        state,
-        eventBuffer,
-        payer: noAdmin.publicKey,
-      }
+        eventAddress: eventAddress,
+        signer: noAdmin.publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        systemProgram: SystemProgram.programId
+      },
     })
-    await signAndSend(new Transaction().add(triggerIx), [noAdmin], connection)
+    await signAndSend(new Transaction().add(trigger2Ix), [noAdmin], connection)
   });
 });

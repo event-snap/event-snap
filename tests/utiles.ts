@@ -4,6 +4,7 @@ import { ConfirmOptions, Connection, Keypair, PublicKey, sendAndConfirmRawTransa
 export const SEED = 'EVENTSNAP'
 export const STATE_SEED = 'STATE'
 export const EVNET_BUFFER = 'EVENT_BUFFER'
+export const MOCKED_EVENT_SEED = 'MOCKED_EVENT'
 
 export const getProgramAuthority = async (programId: PublicKey) => {
     const [programAuthority, nonce] = await PublicKey.findProgramAddress(
@@ -43,7 +44,7 @@ export const getEventBufferAddress = async (programId: PublicKey) => {
 
 export const getEventAddress = async (programId: PublicKey) => {
     const [address, bump] = await PublicKey.findProgramAddress(
-        [Buffer.from(utils.bytes.utf8.encode(EVNET_BUFFER))],
+        [Buffer.from(utils.bytes.utf8.encode(MOCKED_EVENT_SEED))],
         programId
     )
     return {
