@@ -1,7 +1,11 @@
 use crate::structs::state::State;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
+use anchor_lang::system_program::CreateAccount;
+use interfaces::CreateEvent;
+use structs::EventStruct;
 
+pub mod interfaces;
 mod macros;
 pub mod structs;
 
@@ -14,6 +18,8 @@ const EVNET_BUFFER: &str = "EVENT_BUFFER";
 #[program]
 pub mod event_span {
     use anchor_lang::solana_program::system_instruction;
+
+    use crate::structs::EventStruct;
 
     use super::*;
 
@@ -60,6 +66,7 @@ pub mod event_span {
             &ctx.accounts.admin.key(),
             amount,
         );
+        // TODO: check accounts infos are required
         anchor_lang::solana_program::program::invoke_signed(
             &ix,
             &[
@@ -72,8 +79,95 @@ pub mod event_span {
         Ok(())
     }
 
-    pub fn trigger_events_creation(ctx: Context<TriggerEventsCreation>) -> Result<()> {
-        msg!("trigger_events_creation");
+    pub fn trigger_events_creation(
+        ctx: Context<TriggerEventsCreation>,
+        event_seed: u64,
+    ) -> Result<()> {
+        let seed: [u8; 8] = event_seed.to_le_bytes();
+        // TODO: in future SEED of account is [tx + EventTypeName]
+        let state = ctx.accounts.state.load()?;
+        let (event_address, bump) = Pubkey::find_program_address(&[&seed], ctx.program_id);
+        let signer: &[&[&[u8]]] = get_signer!(EVNET_BUFFER, state.event_buffer_bump);
+        let timestamp = Clock::get().unwrap().unix_timestamp;
+        let event_payer = ctx.accounts.event_buffer.key();
+
+        let event_strcut = EventStruct {
+            bump,
+            timestamp,
+            invoker: ctx.accounts.singer.key(),
+            payer: event_payer,
+        };
+
+        let mut lamports = Rent::get()?.minimum_balance(EventStruct::LEN);
+        let space: u64 = EventStruct::LEN.try_into().unwrap();
+
+        // it is also possible to call [solana_sdk::system_instruction::create_account]
+        // maybe switch ix to direct call
+
+        ///////////////////NEW_SOLUTION/////////////////////
+        // let mut dummpy_data = b"data".to_vec();
+        // let event_account_info = AccountInfo::new(
+        //     &event_address,
+        //     true,
+        //     true,
+        //     &mut lamports,
+        //     &mut dummpy_data,
+        //     &event_payer,
+        //     false,
+        //     anchor_lang::solana_program::stake_history::Epoch::default(),
+        // );
+
+        // let cpi_accounts = CreateAccount {
+        //     from: ctx.accounts.event_buffer.to_account_info(),
+        //     // to: event_account_info.clone(),
+        //     to: event_account_info,
+        // };
+
+        // // system_program account info instead of passing via context
+
+        // let cpi_context = anchor_lang::context::CpiContext::new(
+        //     ctx.accounts.system_program.to_account_info(),
+        //     cpi_accounts,
+        // );
+        // anchor_lang::system_program::create_account(
+        //     cpi_context.with_signer(signer),
+        //     lamports.clone(),
+        //     space,
+        //     &event_payer,
+        // )?;
+        ///////////////////////////////////////////////
+
+        ///////////////////////////////////////////////
+
+        // ctx: CpiContext<'a, 'b, 'c, 'info, CreateAccount<'info>>,
+
+        // let create_account_ctx =
+        //     anchor_lang::system_program::create_account(ctx, lamports, space, &event_payer)?;
+
+        //
+        // let ix = solana_sdk::system_instruction::create_account(
+        //     &event_payer,
+        //     &event_address,
+        //     lamports,
+        //     space,
+        //     &event_payer,
+        // );
+        // anchor_lang::solana_program::program::invoke_signed(
+        //     &ix,
+        //     &[
+        //         ctx.accounts.event_buffer.to_account_info(),
+        //         ctx.accounts.admin.to_account_info(),
+        //     ],
+        //     signer,
+        // )?;
+
+        // solana_sdk::system_instruction::create_account_with_seed(&event_payer, &event_address, base, seed, lamports, space, owner)
+
+        // EventStruct::LEN
+
+        // solana_sdk::system_instruction::create_account_with_seed(from_pubkey, to_pubkey, base, seed, lamports, space, owner)
+
+        // solana_sdk::system_instruction::create_account()
 
         Ok(())
     }
@@ -161,6 +255,7 @@ pub struct WithdrawEventBuffer<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction( event_seed: u64)]
 pub struct TriggerEventsCreation<'info> {
     #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
     pub state: AccountLoader<'info, State>,
@@ -168,5 +263,71 @@ pub struct TriggerEventsCreation<'info> {
     #[account(mut, seeds = [EVNET_BUFFER.as_bytes()], bump = state.load()?.event_buffer_bump)]
     pub event_buffer: UncheckedAccount<'info>,
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub singer: Signer<'info>,
+    /// CHECK: safe as constant
+    #[account(address = system_program::ID)]
+    pub system_program: AccountInfo<'info>,
 }
+
+// impl<'info> CreateEvent<'info> for TriggerEventsCreation<'info> {
+//     fn create_event<'a>(
+//         &self,
+//         event_address: &'a Pubkey,
+//         // data: Vec<u8>,
+//     ) -> CpiContext<'_, '_, '_, 'info, CreateAccount<'info>> {
+//         let mut lamports = Rent::get().unwrap().minimum_balance(EventStruct::LEN);
+//         let event_payer = self.event_buffer.key();
+//         let mut dummpy_data = b"data".to_vec();
+//         let data = &mut b"data";
+//         let test_address = Pubkey::new_unique();
+
+//         let event_account_info = AccountInfo::new(
+//             &'a event_address,
+//             true,
+//             true,
+//             &mut lamports,
+//             &mut dummpy_data,
+//             &event_payer,
+//             false,
+//             anchor_lang::solana_program::stake_history::Epoch::default(),
+//         );
+
+//         let accounts = CreateAccount {
+//             from: self.event_buffer.to_account_info(),
+//             to: event_account_info,
+//         };
+
+//         panic!("txt");
+//         // CpiContext::new(self.system_program.to_account_info(), accounts)
+//     }
+// }
+
+// impl<'info> CreateEvent<'info> for TriggerEventsCreation<'info> {
+//     fn create_event(
+//         &self,
+//         event_address: Pubkey,
+//     ) -> CpiContext<'_, '_, '_, 'info, CreateAccount<'info>> {
+//         let mut lamports = Rent::get().unwrap().minimum_balance(EventStruct::LEN);
+//         let space: u64 = EventStruct::LEN.try_into().unwrap();
+//         let mut dummpy_data = b"data".to_vec();
+//         let event_payer = self.event_buffer.key();
+
+//         let event_account_info = AccountInfo::new(
+//             &event_address,
+//             true,
+//             true,
+//             &mut lamports,
+//             &mut dummpy_data,
+//             &event_payer,
+//             false,
+//             anchor_lang::solana_program::stake_history::Epoch::default(),
+//         );
+
+//         let accounts = CreateAccount {
+//             from: self.event_buffer.to_account_info(),
+//             to: event_account_info,
+//         };
+
+//         CpiContext::new(self.system_program.to_account_info(), accounts)
+//     }
+// }
