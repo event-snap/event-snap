@@ -1,8 +1,6 @@
 use crate::structs::state::State;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
-use anchor_lang::system_program::CreateAccount;
-use interfaces::CreateEvent;
 use structs::EventStruct;
 
 pub mod interfaces;
@@ -14,6 +12,7 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 const AUTHORITY_SEED: &str = "EVENTSNAP";
 const STATE_SEED: &str = "STATE";
 const EVNET_BUFFER: &str = "EVENT_BUFFER";
+const MOCKED_EVENT_SEED: &str = "MOCKED_EVENT";
 
 #[program]
 pub mod event_span {
@@ -79,98 +78,133 @@ pub mod event_span {
         Ok(())
     }
 
-    pub fn trigger_events_creation(
-        ctx: Context<TriggerEventsCreation>,
-        event_seed: u64,
-    ) -> Result<()> {
-        let seed: [u8; 8] = event_seed.to_le_bytes();
-        // TODO: in future SEED of account is [tx + EventTypeName]
-        let state = ctx.accounts.state.load()?;
-        let (event_address, bump) = Pubkey::find_program_address(&[&seed], ctx.program_id);
-        let signer: &[&[&[u8]]] = get_signer!(EVNET_BUFFER, state.event_buffer_bump);
-        let timestamp = Clock::get().unwrap().unix_timestamp;
-        let event_payer = ctx.accounts.event_buffer.key();
+    pub fn trigger_events_creation_two(ctx: Context<TriggerEventsCreationTwo>) -> Result<()> {
+        let event_address = &mut ctx.accounts.event_address.load_init()?;
 
-        let event_strcut = EventStruct {
-            bump,
-            timestamp,
-            invoker: ctx.accounts.singer.key(),
-            payer: event_payer,
+        **event_address = EventStruct {
+            bump: *ctx.bumps.get("event_address").unwrap(),
+            invoker: ctx.accounts.signer.key(),
+            payer: ctx.accounts.signer.key(),
+            timestamp: Clock::get().unwrap().unix_timestamp,
         };
 
-        let mut lamports = Rent::get()?.minimum_balance(EventStruct::LEN);
-        let space: u64 = EventStruct::LEN.try_into().unwrap();
-
-        // it is also possible to call [solana_sdk::system_instruction::create_account]
-        // maybe switch ix to direct call
-
-        ///////////////////NEW_SOLUTION/////////////////////
-        // let mut dummpy_data = b"data".to_vec();
-        // let event_account_info = AccountInfo::new(
-        //     &event_address,
-        //     true,
-        //     true,
-        //     &mut lamports,
-        //     &mut dummpy_data,
-        //     &event_payer,
-        //     false,
-        //     anchor_lang::solana_program::stake_history::Epoch::default(),
-        // );
+        // let signer: &[&[&[u8]]] = get_signer!(EVNET_BUFFER, state.event_buffer_bump);
+        // let lamports = Rent::get()?.minimum_balance(EventStruct::LEN);
+        // let space: u64 = EventStruct::LEN.try_into().unwrap();
+        // let event_payer = ctx.accounts.event_buffer.key();
 
         // let cpi_accounts = CreateAccount {
         //     from: ctx.accounts.event_buffer.to_account_info(),
-        //     // to: event_account_info.clone(),
-        //     to: event_account_info,
+        //     to: ctx.accounts.event_address.to_account_info(),
         // };
 
-        // // system_program account info instead of passing via context
-
-        // let cpi_context = anchor_lang::context::CpiContext::new(
+        // let _cpi_context = anchor_lang::context::CpiContext::new(
         //     ctx.accounts.system_program.to_account_info(),
         //     cpi_accounts,
         // );
+
         // anchor_lang::system_program::create_account(
         //     cpi_context.with_signer(signer),
         //     lamports.clone(),
         //     space,
         //     &event_payer,
         // )?;
-        ///////////////////////////////////////////////
-
-        ///////////////////////////////////////////////
-
-        // ctx: CpiContext<'a, 'b, 'c, 'info, CreateAccount<'info>>,
-
-        // let create_account_ctx =
-        //     anchor_lang::system_program::create_account(ctx, lamports, space, &event_payer)?;
-
-        //
-        // let ix = solana_sdk::system_instruction::create_account(
-        //     &event_payer,
-        //     &event_address,
-        //     lamports,
-        //     space,
-        //     &event_payer,
-        // );
-        // anchor_lang::solana_program::program::invoke_signed(
-        //     &ix,
-        //     &[
-        //         ctx.accounts.event_buffer.to_account_info(),
-        //         ctx.accounts.admin.to_account_info(),
-        //     ],
-        //     signer,
-        // )?;
-
-        // solana_sdk::system_instruction::create_account_with_seed(&event_payer, &event_address, base, seed, lamports, space, owner)
-
-        // EventStruct::LEN
-
-        // solana_sdk::system_instruction::create_account_with_seed(from_pubkey, to_pubkey, base, seed, lamports, space, owner)
-
-        // solana_sdk::system_instruction::create_account()
 
         Ok(())
     }
+
+    // pub fn trigger_events_creation(
+    //     ctx: Context<TriggerEventsCreation>,
+    //     event_seed: u64,
+    // ) -> Result<()> {
+    //     let seed: [u8; 8] = event_seed.to_le_bytes();
+    //     // TODO: in future SEED of account is [tx + EventTypeName]
+    //     let state = ctx.accounts.state.load()?;
+    //     let (event_address, bump) = Pubkey::find_program_address(&[&seed], ctx.program_id);
+    //     let signer: &[&[&[u8]]] = get_signer!(EVNET_BUFFER, state.event_buffer_bump);
+    //     let timestamp = Clock::get().unwrap().unix_timestamp;
+    //     let event_payer = ctx.accounts.event_buffer.key();
+
+    //     let event_strcut = EventStruct {
+    //         bump,
+    //         timestamp,
+    //         invoker: ctx.accounts.singer.key(),
+    //         payer: event_payer,
+    //     };
+
+    //     let mut lamports = Rent::get()?.minimum_balance(EventStruct::LEN);
+    //     let space: u64 = EventStruct::LEN.try_into().unwrap();
+
+    //     // it is also possible to call [solana_sdk::system_instruction::create_account]
+    //     // maybe switch ix to direct call
+
+    //     ///////////////////NEW_SOLUTION/////////////////////
+    //     // let mut dummpy_data = b"data".to_vec();
+    //     // let event_account_info = AccountInfo::new(
+    //     //     &event_address,
+    //     //     true,
+    //     //     true,
+    //     //     &mut lamports,
+    //     //     &mut dummpy_data,
+    //     //     &event_payer,
+    //     //     false,
+    //     //     anchor_lang::solana_program::stake_history::Epoch::default(),
+    //     // );
+
+    //     // let cpi_accounts = CreateAccount {
+    //     //     from: ctx.accounts.event_buffer.to_account_info(),
+    //     //     // to: event_account_info.clone(),
+    //     //     to: event_account_info,
+    //     // };
+
+    //     // // system_program account info instead of passing via context
+
+    //     // let cpi_context = anchor_lang::context::CpiContext::new(
+    //     //     ctx.accounts.system_program.to_account_info(),
+    //     //     cpi_accounts,
+    //     // );
+    //     // anchor_lang::system_program::create_account(
+    //     //     cpi_context.with_signer(signer),
+    //     //     lamports.clone(),
+    //     //     space,
+    //     //     &event_payer,
+    //     // )?;
+    //     ///////////////////////////////////////////////
+
+    //     ///////////////////////////////////////////////
+
+    //     // ctx: CpiContext<'a, 'b, 'c, 'info, CreateAccount<'info>>,
+
+    //     // let create_account_ctx =
+    //     //     anchor_lang::system_program::create_account(ctx, lamports, space, &event_payer)?;
+
+    //     //
+    //     // let ix = solana_sdk::system_instruction::create_account(
+    //     //     &event_payer,
+    //     //     &event_address,
+    //     //     lamports,
+    //     //     space,
+    //     //     &event_payer,
+    //     // );
+    //     // anchor_lang::solana_program::program::invoke_signed(
+    //     //     &ix,
+    //     //     &[
+    //     //         ctx.accounts.event_buffer.to_account_info(),
+    //     //         ctx.accounts.admin.to_account_info(),
+    //     //     ],
+    //     //     signer,
+    //     // )?;
+
+    //     // solana_sdk::system_instruction::create_account_with_seed(&event_payer, &event_address, base, seed, lamports, space, owner)
+
+    //     // EventStruct::LEN
+
+    //     // solana_sdk::system_instruction::create_account_with_seed(from_pubkey, to_pubkey, base, seed, lamports, space, owner)
+
+    //     // solana_sdk::system_instruction::create_account()
+
+    //     Ok(())
+    // }
 }
 
 // TODO: rent in not required
@@ -254,16 +288,33 @@ pub struct WithdrawEventBuffer<'info> {
     // pub system_program: AccountInfo<'info>,
 }
 
+// #[derive(Accounts)]
+// #[instruction( event_seed: u64)]
+// pub struct TriggerEventsCreation<'info> {
+//     #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
+//     pub state: AccountLoader<'info, State>,
+//     /// CHECK: safe as seed checked
+//     #[account(mut, seeds = [EVNET_BUFFER.as_bytes()], bump = state.load()?.event_buffer_bump)]
+//     pub event_buffer: UncheckedAccount<'info>,
+//     #[account(mut)]
+//     pub singer: Signer<'info>,
+//     /// CHECK: safe as constant
+//     #[account(address = system_program::ID)]
+//     pub system_program: AccountInfo<'info>,
+// }
+
 #[derive(Accounts)]
-#[instruction( event_seed: u64)]
-pub struct TriggerEventsCreation<'info> {
-    #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
-    pub state: AccountLoader<'info, State>,
-    /// CHECK: safe as seed checked
-    #[account(mut, seeds = [EVNET_BUFFER.as_bytes()], bump = state.load()?.event_buffer_bump)]
-    pub event_buffer: UncheckedAccount<'info>,
+pub struct TriggerEventsCreationTwo<'info> {
+    #[account(init, seeds = [MOCKED_EVENT_SEED.as_bytes().as_ref()], bump, space = EventStruct::LEN, payer = signer)]
+    pub event_address: AccountLoader<'info, EventStruct>,
+    // #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
+    // pub state: AccountLoader<'info, State>,
+    // /// CHECK: safe as seed checked
+    // #[account(mut, seeds = [AUTHORITY_SEED.as_bytes().as_ref()], bump = state.load()?.nonce)]
+    // pub program_authority: AccountInfo<'info>,
     #[account(mut)]
-    pub singer: Signer<'info>,
+    pub signer: Signer<'info>,
+    pub rent: Sysvar<'info, Rent>,
     /// CHECK: safe as constant
     #[account(address = system_program::ID)]
     pub system_program: AccountInfo<'info>,
