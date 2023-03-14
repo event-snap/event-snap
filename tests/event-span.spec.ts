@@ -45,6 +45,7 @@ describe("event-span", () => {
     }
 
     const amountToDeposit = new BN(300000000)
+    const amountToWithdraw = new BN(300000000).divn(10)
     const depositIx = program.instruction.depositEventBuffer(amountToDeposit, {
       accounts: {
         state,
@@ -63,7 +64,7 @@ describe("event-span", () => {
       console.log(`admin amount = ${adminAmount}`)
     }
 
-    const withdrawByNoAdminIx = program.instruction.withdrawEventBuffer(amountToDeposit, {
+    const withdrawByNoAdminIx = program.instruction.withdrawEventBuffer(amountToWithdraw, {
       accounts: {
         state,
         eventBuffer,
@@ -75,7 +76,7 @@ describe("event-span", () => {
     })
     await assertThrowsAsync(signAndSend(new Transaction().add(withdrawByNoAdminIx), [noAdmin], connection))
 
-    const withdrawByAdminIx = program.instruction.withdrawEventBuffer(amountToDeposit, {
+    const withdrawByAdminIx = program.instruction.withdrawEventBuffer(amountToWithdraw, {
       accounts: {
         state,
         eventBuffer,
@@ -100,6 +101,8 @@ describe("event-span", () => {
 
     const trigger2Ix = program.instruction.triggerEventsCreationTwo({
       accounts: {
+        state,
+        eventBuffer,
         eventAddress: eventAddress,
         signer: noAdmin.publicKey,
         rent: SYSVAR_RENT_PUBKEY,
