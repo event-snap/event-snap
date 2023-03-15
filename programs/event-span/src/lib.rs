@@ -74,40 +74,42 @@ pub mod event_span {
         Ok(())
     }
 
-    pub fn trigger_events_creation(ctx: Context<TriggerEventsCreation>) -> Result<()> {
-        let event_buffer = ctx.accounts.event_buffer.load()?;
+    pub fn trigger_events_creation(ctx: Context<TriggerEventsCreation>, emit: bool) -> Result<()> {
+        if emit {
+            let event_buffer = ctx.accounts.event_buffer.load()?;
 
-        let (_, bump) = Pubkey::find_program_address(&[MOCKED_EVENT_SEED], ctx.program_id);
-        let signers: &[&[&[u8]]] = &[
-            &[EVENT_AUTHORITY_SEED, &[event_buffer.nonce]],
-            &[MOCKED_EVENT_SEED, &[bump]],
-        ];
-        let space: usize = EventStruct::LEN;
-        let lamports = Rent::get()?.minimum_balance(space);
+            let (_, bump) = Pubkey::find_program_address(&[MOCKED_EVENT_SEED], ctx.program_id);
+            let signers: &[&[&[u8]]] = &[
+                &[EVENT_AUTHORITY_SEED, &[event_buffer.nonce]],
+                &[MOCKED_EVENT_SEED, &[bump]],
+            ];
+            let space: usize = EventStruct::LEN;
+            let lamports = Rent::get()?.minimum_balance(space);
 
-        let cpi_accounts = anchor_lang::system_program::CreateAccount {
-            from: ctx.accounts.event_authority.to_account_info(),
-            to: ctx.accounts.event_address.to_account_info(),
-        };
-        let cpi_context = anchor_lang::context::CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            cpi_accounts,
-        );
+            let cpi_accounts = anchor_lang::system_program::CreateAccount {
+                from: ctx.accounts.event_authority.to_account_info(),
+                to: ctx.accounts.event_address.to_account_info(),
+            };
+            let cpi_context = anchor_lang::context::CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                cpi_accounts,
+            );
 
-        anchor_lang::system_program::create_account(
-            cpi_context.with_signer(signers),
-            lamports.clone(),
-            space.try_into().unwrap(),
-            ctx.program_id,
-        )?;
-        let event: &mut RefMut<EventStruct> =
-            &mut utiles::deserialize_account(&ctx.accounts.event_address)?;
-        **event = EventStruct {
-            invoker: ctx.accounts.signer.key(),
-            payer: ctx.accounts.event_buffer.key(),
-            timestamp: Clock::get().unwrap().unix_timestamp,
-            bump,
-        };
+            anchor_lang::system_program::create_account(
+                cpi_context.with_signer(signers),
+                lamports.clone(),
+                space.try_into().unwrap(),
+                ctx.program_id,
+            )?;
+            let event: &mut RefMut<EventStruct> =
+                &mut utiles::deserialize_account(&ctx.accounts.event_address)?;
+            **event = EventStruct {
+                invoker: ctx.accounts.signer.key(),
+                payer: ctx.accounts.event_buffer.key(),
+                timestamp: Clock::get().unwrap().unix_timestamp,
+                bump,
+            };
+        }
 
         Ok(())
     }
@@ -156,8 +158,9 @@ pub struct WithdrawEventBuffer<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction( emit: bool)]
 pub struct TriggerEventsCreation<'info> {
-    /// CHECK: safe as constant
+    /// CHECK: event account
     #[account(mut)]
     pub event_address: AccountInfo<'info>,
     #[account(seeds = [EVENT_BUFFER_SEED.as_ref()], bump = event_buffer.load()?.bump)]

@@ -79,7 +79,7 @@ describe("event-span", () => {
     }
 
     const { eventAddress } = await getEventAddress(program.programId)
-    await program.rpc.triggerEventsCreation({
+    await program.rpc.triggerEventsCreation(true, {
       accounts: {
         eventBuffer,
         eventAuthority,
