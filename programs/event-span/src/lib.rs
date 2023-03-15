@@ -8,11 +8,11 @@ pub mod structs;
 pub mod utiles;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
-// TODO: change type from &str to &[u8]
-const AUTHORITY_SEED: &str = "EVENTSNAP";
-const STATE_SEED: &str = "STATE";
-const EVNET_BUFFER: &str = "EVENT_BUFFER";
-const MOCKED_EVENT_SEED: &str = "MOCKED_EVENT";
+
+const AUTHORITY_SEED: &[u8] = b"EVENTSNAP";
+const STATE_SEED: &[u8] = b"STATE";
+const EVNET_BUFFER: &[u8] = b"EVENT_BUFFER";
+const MOCKED_EVENT_SEED: &[u8] = b"MOCKED_EVENT";
 
 #[program]
 pub mod event_span {
@@ -83,11 +83,10 @@ pub mod event_span {
     pub fn trigger_events_creation(ctx: Context<TriggerEventsCreation>) -> Result<()> {
         let state = ctx.accounts.state.load()?;
 
-        let (_, bump) =
-            Pubkey::find_program_address(&[MOCKED_EVENT_SEED.as_bytes()], ctx.program_id);
+        let (_, bump) = Pubkey::find_program_address(&[MOCKED_EVENT_SEED], ctx.program_id);
         let signers: &[&[&[u8]]] = &[
-            &[EVNET_BUFFER.as_bytes(), &[state.event_buffer_bump]],
-            &[MOCKED_EVENT_SEED.as_bytes(), &[bump]],
+            &[EVNET_BUFFER, &[state.event_buffer_bump]],
+            &[MOCKED_EVENT_SEED, &[bump]],
         ];
         let space: usize = EventStruct::LEN;
         let lamports = Rent::get()?.minimum_balance(space);
@@ -128,17 +127,17 @@ pub mod event_span {
 #[derive(Accounts)]
 #[instruction( nonce: u8)]
 pub struct Initialize<'info> {
-    #[account(init, seeds = [STATE_SEED.as_bytes().as_ref()], bump, space = State::LEN, payer = admin)]
+    #[account(init, seeds = [STATE_SEED.as_ref()], bump, space = State::LEN, payer = admin)]
     pub state: AccountLoader<'info, State>,
     #[account(mut)]
     pub admin: Signer<'info>,
     /// CHECK: safe as seed checked
-    #[account(seeds = [AUTHORITY_SEED.as_bytes().as_ref()], bump = nonce)]
+    #[account(seeds = [AUTHORITY_SEED.as_ref()], bump = nonce)]
     pub program_authority: AccountInfo<'info>,
     /// CHECK: safe as seed checked
     #[account(
         mut,
-        seeds = [EVNET_BUFFER.as_bytes()],
+        seeds = [EVNET_BUFFER],
         bump,
     )]
     pub event_buffer: UncheckedAccount<'info>,
@@ -151,12 +150,12 @@ pub struct Initialize<'info> {
 #[derive(Accounts)]
 #[instruction( amount: u64)]
 pub struct DepositEventBuffer<'info> {
-    #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
+    #[account(seeds = [STATE_SEED.as_ref()], bump = state.load()?.bump)]
     pub state: AccountLoader<'info, State>,
     #[account(mut)]
     pub depositor: Signer<'info>,
     /// CHECK: safe as seed checked
-    #[account(mut, seeds = [EVNET_BUFFER.as_bytes()], bump = state.load()?.event_buffer_bump)]
+    #[account(mut, seeds = [EVNET_BUFFER], bump = state.load()?.event_buffer_bump)]
     pub event_buffer: UncheckedAccount<'info>,
     pub rent: Sysvar<'info, Rent>,
     /// CHECK: safe as constant
@@ -167,12 +166,12 @@ pub struct DepositEventBuffer<'info> {
 #[derive(Accounts)]
 #[instruction( amount: u64)]
 pub struct WithdrawEventBuffer<'info> {
-    #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
+    #[account(seeds = [STATE_SEED.as_ref()], bump = state.load()?.bump)]
     pub state: AccountLoader<'info, State>,
     #[account(mut, constraint = admin.key() == state.load()?.eventsnap_admin)] // TODO: admin error
     pub admin: Signer<'info>,
     /// CHECK: safe as seed checked
-    #[account(mut, seeds = [EVNET_BUFFER.as_bytes()], bump = state.load()?.event_buffer_bump)]
+    #[account(mut, seeds = [EVNET_BUFFER], bump = state.load()?.event_buffer_bump)]
     pub event_buffer: UncheckedAccount<'info>,
     pub rent: Sysvar<'info, Rent>,
     /// CHECK: safe as constant
@@ -180,7 +179,7 @@ pub struct WithdrawEventBuffer<'info> {
     pub system_program: AccountInfo<'info>,
 
     /// CHECK: safe as seed checked
-    #[account(mut, seeds = [AUTHORITY_SEED.as_bytes().as_ref()], bump = state.load()?.nonce)]
+    #[account(mut, seeds = [AUTHORITY_SEED.as_ref()], bump = state.load()?.nonce)]
     pub program_authority: AccountInfo<'info>,
 }
 
@@ -190,10 +189,10 @@ pub struct TriggerEventsCreation<'info> {
     #[account(mut)]
     pub event_address: AccountInfo<'info>,
 
-    #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
+    #[account(seeds = [STATE_SEED.as_ref()], bump = state.load()?.bump)]
     pub state: AccountLoader<'info, State>,
     /// CHECK: safe as seed checked
-    #[account(mut, seeds = [EVNET_BUFFER.as_bytes().as_ref()], bump = state.load()?.event_buffer_bump)]
+    #[account(mut, seeds = [EVNET_BUFFER.as_ref()], bump = state.load()?.event_buffer_bump)]
     pub event_buffer: AccountInfo<'info>,
 
     #[account(mut)]
