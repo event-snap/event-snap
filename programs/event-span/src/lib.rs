@@ -6,6 +6,7 @@ use structs::EventStruct;
 pub mod interfaces;
 mod macros;
 pub mod structs;
+pub mod utiles;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 // TODO: change type from &str to &[u8]
@@ -16,6 +17,8 @@ const MOCKED_EVENT_SEED: &str = "MOCKED_EVENT";
 
 #[program]
 pub mod event_span {
+    use std::cell::RefMut;
+
     use anchor_lang::solana_program::system_instruction;
 
     use crate::structs::EventStruct;
@@ -81,14 +84,12 @@ pub mod event_span {
     pub fn trigger_events_creation_two(ctx: Context<TriggerEventsCreationTwo>) -> Result<()> {
         let state = ctx.accounts.state.load()?;
 
-        // let signer: &[&[&[u8]]] = get_signer!(EVNET_BUFFER, state.event_buffer_bump);
         let (_, bump) =
             Pubkey::find_program_address(&[MOCKED_EVENT_SEED.as_bytes()], ctx.program_id);
         let signers: &[&[&[u8]]] = &[
             &[EVNET_BUFFER.as_bytes(), &[state.event_buffer_bump]],
             &[MOCKED_EVENT_SEED.as_bytes(), &[bump]],
         ];
-
         let space: usize = EventStruct::LEN;
         let lamports = Rent::get()?.minimum_balance(space);
 
@@ -96,7 +97,6 @@ pub mod event_span {
             from: ctx.accounts.event_buffer.to_account_info(), // payer
             to: ctx.accounts.event_address.to_account_info(),  // account
         };
-
         let cpi_context = anchor_lang::context::CpiContext::new(
             ctx.accounts.system_program.to_account_info(), // program that creates account
             cpi_accounts,
@@ -117,9 +117,52 @@ pub mod event_span {
             ctx.program_id, // this program as owner
         )?;
 
+        let event: &mut RefMut<EventStruct> =
+            &mut utiles::deserialize_account(&ctx.accounts.event_address)?;
+
+        msg!("event = {:?}", event);
+
+        **event = EventStruct {
+            invoker: ctx.accounts.signer.key(),
+            payer: ctx.accounts.event_buffer.key(),
+            timestamp: Clock::get().unwrap().unix_timestamp,
+            bump,
+        };
+
+        msg!("event = {:?}", event);
+
+        // event.bump = bump;
+        // event.invoker = ctx.accounts.signer.key();
+        // event.payer = ctx.accounts.event_buffer.key();
+        // event.timestamp = Clock::get().unwrap().unix_timestamp;
+
+        // **event = EventStruct {
+        //     invoker: ctx.accounts.signer.key(),
+        //     payer: ctx.accounts.event_buffer.key(),
+        //     timestamp: Clock::get().unwrap().unix_timestamp,
+        //     bump,
+        // };
+
+        // let data = ctx.accounts.event_address.try_borrow_mut_data()?;
+
+        // let event_struct: RefMut<EventStruct> = utiles::deserialize_event(data)?;
+
+        // let loader =
+        //     AccountLoader::<EventStruct>::new(ctx.accounts.event_address.to_account_info());
+        // let acc = &mut loader.load_init()?;
+
+        // let event = &mut ctx.accounts.event_address.load_init()?;
+        // **event = EventStruct {
+        //     invoker: ctx.accounts.signer.key(),
+        //     payer: ctx.accounts.event_buffer.key(),
+        //     timestamp: Clock::get().unwrap().unix_timestamp,
+        //     bump,
+        // };
+
         // let invoker = ctx.accounts.signer.key();
         // ctx.accounts.signer.key();
 
+        // SERIALZIE
         // let event_struct = EventStruct {
         //     invoker: ctx.accounts.signer.key(),
         //     payer: ctx.accounts.event_buffer.key(),
@@ -127,7 +170,19 @@ pub mod event_span {
         //     bump,
         // };
 
-        // event_struct.serialize()
+        // let data = &mut *ctx.accounts.event_address.data.borrow_mut();
+        // msg!("data = {:?}", data);
+        // // event_struct
+        // //     .serialize(data)
+        // //     .map_err(|_| anchor_lang::error::ErrorCode::AccountDidNotSerialize)?;
+
+        // AnchorSerialize::serialize(&event_struct, data)
+        //     .map_err(|_| anchor_lang::error::ErrorCode::AccountDidNotSerialize)?;
+
+        // msg!("data = {:?}", data);
+        // let mut data_read: &[u8] = *data;
+        // EventStruct::deserialize(&mut data_read)?;
+        // SERIALZIE
 
         // Alternative way to create accoun by signer and copy siganture
         // let cpi_accounts = anchor_lang::system_program::CreateAccount {

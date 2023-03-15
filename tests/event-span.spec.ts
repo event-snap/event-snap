@@ -110,5 +110,10 @@ describe("event-span", () => {
       },
     })
     await signAndSend(new Transaction().add(trigger2Ix), [noAdmin], connection)
+
+    await sleep(500)
+
+    const event = await program.account.eventStruct.fetch(eventAddress)
+    console.log(event)
   });
 });

@@ -3,8 +3,7 @@ use anchor_lang::prelude::*;
 use crate::size;
 
 #[account(zero_copy)]
-#[repr(packed)]
-#[derive(PartialEq, Default, Debug)]
+#[derive(PartialEq, Default, Debug, AnchorSerialize, AnchorDeserialize)]
 pub struct EventStruct {
     pub invoker: Pubkey,
     pub payer: Pubkey,
