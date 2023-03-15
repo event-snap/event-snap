@@ -28,7 +28,6 @@ describe("event-span", () => {
         eventBuffer,
         eventAuthority,
         admin: admin.publicKey,
-        rent: SYSVAR_RENT_PUBKEY,
         systemProgram: SystemProgram.programId
       }
     })
@@ -47,7 +46,6 @@ describe("event-span", () => {
         eventBuffer,
         eventAuthority,
         depositor: admin.publicKey,
-        rent: SYSVAR_RENT_PUBKEY,
         systemProgram: SystemProgram.programId
       }
     })
@@ -64,7 +62,6 @@ describe("event-span", () => {
         eventBuffer,
         eventAuthority,
         admin: notAdmin.publicKey,
-        rent: SYSVAR_RENT_PUBKEY,
         systemProgram: SystemProgram.programId
       }
     })
@@ -75,7 +72,6 @@ describe("event-span", () => {
         eventBuffer,
         eventAuthority,
         admin: admin.publicKey,
-        rent: SYSVAR_RENT_PUBKEY,
         systemProgram: SystemProgram.programId
       }
     })
@@ -93,7 +89,6 @@ describe("event-span", () => {
         eventAuthority,
         eventAddress: eventAddress,
         signer: notAdmin.publicKey,
-        rent: SYSVAR_RENT_PUBKEY,
         systemProgram: SystemProgram.programId
       },
     })

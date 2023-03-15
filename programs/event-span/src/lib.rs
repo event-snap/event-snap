@@ -132,10 +132,7 @@ pub struct InitEventBuffer<'info> {
         bump,
     )]
     pub event_authority: UncheckedAccount<'info>,
-    pub rent: Sysvar<'info, Rent>,
-    /// CHECK: safe as constant
-    #[account(address = system_program::ID)]
-    pub system_program: AccountInfo<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -148,10 +145,7 @@ pub struct DepositEventBuffer<'info> {
     /// CHECK: safe as seed checked
     #[account(mut, seeds = [EVENT_AUTHORITY_SEED], bump = event_buffer.load()?.nonce)]
     pub event_authority: UncheckedAccount<'info>,
-    pub rent: Sysvar<'info, Rent>,
-    /// CHECK: safe as constant
-    #[account(address = system_program::ID)]
-    pub system_program: AccountInfo<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -164,10 +158,7 @@ pub struct WithdrawEventBuffer<'info> {
     /// CHECK: safe as seed checked
     #[account(mut, seeds = [EVENT_AUTHORITY_SEED], bump = event_buffer.load()?.nonce)]
     pub event_authority: UncheckedAccount<'info>,
-    pub rent: Sysvar<'info, Rent>,
-    /// CHECK: safe as constant
-    #[account(address = system_program::ID)]
-    pub system_program: AccountInfo<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -184,8 +175,5 @@ pub struct TriggerEventsCreation<'info> {
 
     #[account(mut)]
     pub signer: Signer<'info>,
-    pub rent: Sysvar<'info, Rent>,
-    /// CHECK: safe as constant
-    #[account(address = system_program::ID)]
-    pub system_program: AccountInfo<'info>,
+    pub system_program: Program<'info, System>,
 }
