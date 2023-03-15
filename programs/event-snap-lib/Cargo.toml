@@ -1,0 +1,8 @@
+[package]
+name = "event-snap-lib"
+version = "0.1.0"
+description = "EventSnap is an open-source library focused on gathering protocol statistics and leveraging on-chain events using an infrastructure-less approach"
+edition = "2021"
+
+[dependencies]
+anchor-lang = "0.26.0"

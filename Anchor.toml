@@ -2,7 +2,10 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-event_span = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+event_snap = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+
+[workspace]
+members = ["programs/event-snap"]
 
 [registry]
 url = "https://api.apr.dev"

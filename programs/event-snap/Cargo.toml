@@ -1,12 +1,12 @@
 [package]
-name = "event-span"
+name = "event-snap"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "event_span"
+name = "event_snap"
 
 [features]
 no-entrypoint = []
@@ -16,4 +16,5 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
+event-snap-lib = { path = "../event-snap-lib" }
 anchor-lang = "0.26.0"

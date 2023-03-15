@@ -4,7 +4,6 @@ use structs::EventBuffer;
 pub mod interfaces;
 mod macros;
 pub mod structs;
-pub mod utiles;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -102,7 +101,7 @@ pub mod event_span {
                 ctx.program_id,
             )?;
             let event: &mut RefMut<EventStruct> =
-                &mut utiles::deserialize_account(&ctx.accounts.event_address)?;
+                &mut event_snap_lib::utiles::deserialize_account(&ctx.accounts.event_address)?;
             **event = EventStruct {
                 invoker: ctx.accounts.signer.key(),
                 payer: ctx.accounts.event_buffer.key(),

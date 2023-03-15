@@ -2,9 +2,9 @@ import * as anchor from "@project-serum/anchor";
 import { BN, Program } from "@project-serum/anchor";
 import { EventSpan } from "../target/types/event_span";
 import { Keypair, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from '@solana/web3.js'
-import { assertThrowsAsync, signAndSend, sleep, getEventBufferAddress, getEventAuthorityAddress, getEventAddress } from "./utiles";
+import { assertThrowsAsync, sleep, getEventBufferAddress, getEventAuthorityAddress, getEventAddress } from "./utiles";
 
-describe("event-span", () => {
+describe("event-snap", () => {
   const provider = anchor.AnchorProvider.env()
   const connection = provider.connection
   const program = anchor.workspace.EventSpan as Program<EventSpan>;

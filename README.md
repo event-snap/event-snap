@@ -21,5 +21,9 @@ Alternatively, you can build the project only:
 ```bash
 anchaor build
 ```
-
 ## Library installation
+Add EventSnap library to your project's dependencies:
+```rust
+[dependencies]
+event-snap-lib = { git = "https://github.com/event-snap/event-snap", branch = "master" }
+```
