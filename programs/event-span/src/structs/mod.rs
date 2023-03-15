@@ -1,5 +1,5 @@
 pub mod event;
-pub mod state;
+pub mod event_buffer;
 
 pub use event::*;
-pub use state::*;
+pub use event_buffer::*;

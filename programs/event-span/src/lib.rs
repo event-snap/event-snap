@@ -1,6 +1,6 @@
-use crate::structs::state::State;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_program;
+use structs::EventBuffer;
 
 pub mod interfaces;
 mod macros;
@@ -9,9 +9,8 @@ pub mod utiles;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
-const AUTHORITY_SEED: &[u8] = b"EVENTSNAP";
-const STATE_SEED: &[u8] = b"STATE";
-const EVNET_BUFFER: &[u8] = b"EVENT_BUFFER";
+const EVENT_BUFFER_SEED: &[u8] = b"EVENT_BUFFER";
+const EVENT_AUTHORITY_SEED: &[u8] = b"EVENTSNAP";
 const MOCKED_EVENT_SEED: &[u8] = b"MOCKED_EVENT";
 
 #[program]
@@ -24,18 +23,15 @@ pub mod event_span {
 
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, nonce: u8) -> Result<()> {
-        // initialize state and initalize event buffer
-        let state = &mut ctx.accounts.state.load_init()?;
-        let event_buffer = *ctx.accounts.event_buffer.to_account_info().key;
+    pub fn init_event_buffer(ctx: Context<InitEventBuffer>) -> Result<()> {
+        let event_buffer = &mut ctx.accounts.event_buffer.load_init()?;
+        let event_authority = *ctx.accounts.event_authority.to_account_info().key;
 
-        **state = State {
-            nonce,
-            bump: *ctx.bumps.get("state").unwrap(),
-            program_authority: *ctx.accounts.program_authority.key,
-            eventsnap_admin: *ctx.accounts.admin.key,
-            event_buffer,
-            event_buffer_bump: *ctx.bumps.get("event_buffer").unwrap(),
+        **event_buffer = EventBuffer {
+            event_authority,
+            admin: ctx.accounts.admin.key(),
+            nonce: *ctx.bumps.get("event_authority").unwrap(),
+            bump: *ctx.bumps.get("event_buffer").unwrap(),
         };
 
         Ok(())
@@ -44,14 +40,14 @@ pub mod event_span {
     pub fn deposit_event_buffer(ctx: Context<DepositEventBuffer>, amount: u64) -> Result<()> {
         let ix = system_instruction::transfer(
             &ctx.accounts.depositor.key(),
-            &ctx.accounts.event_buffer.key(),
+            &ctx.accounts.event_authority.key(),
             amount,
         );
         anchor_lang::solana_program::program::invoke(
             &ix,
             &[
                 ctx.accounts.depositor.to_account_info(),
-                ctx.accounts.event_buffer.to_account_info(),
+                ctx.accounts.event_authority.to_account_info(),
             ],
         )?;
 
@@ -59,19 +55,18 @@ pub mod event_span {
     }
 
     pub fn withdraw_event_buffer(ctx: Context<WithdrawEventBuffer>, amount: u64) -> Result<()> {
-        let state = ctx.accounts.state.load()?;
-        let signer: &[&[&[u8]]] = get_signer!(EVNET_BUFFER, state.event_buffer_bump);
+        let event_buffer = ctx.accounts.event_buffer.load()?;
+        let signer: &[&[&[u8]]] = get_signer!(EVENT_AUTHORITY_SEED, event_buffer.nonce);
 
         let ix = system_instruction::transfer(
-            &ctx.accounts.event_buffer.key(),
+            &ctx.accounts.event_authority.key(),
             &ctx.accounts.admin.key(),
             amount,
         );
-        // TODO: check accounts infos are required
         anchor_lang::solana_program::program::invoke_signed(
             &ix,
             &[
-                ctx.accounts.event_buffer.to_account_info(),
+                ctx.accounts.event_authority.to_account_info(),
                 ctx.accounts.admin.to_account_info(),
             ],
             signer,
@@ -81,18 +76,18 @@ pub mod event_span {
     }
 
     pub fn trigger_events_creation(ctx: Context<TriggerEventsCreation>) -> Result<()> {
-        let state = ctx.accounts.state.load()?;
+        let event_buffer = ctx.accounts.event_buffer.load()?;
 
         let (_, bump) = Pubkey::find_program_address(&[MOCKED_EVENT_SEED], ctx.program_id);
         let signers: &[&[&[u8]]] = &[
-            &[EVNET_BUFFER, &[state.event_buffer_bump]],
+            &[EVENT_AUTHORITY_SEED, &[event_buffer.nonce]],
             &[MOCKED_EVENT_SEED, &[bump]],
         ];
         let space: usize = EventStruct::LEN;
         let lamports = Rent::get()?.minimum_balance(space);
 
         let cpi_accounts = anchor_lang::system_program::CreateAccount {
-            from: ctx.accounts.event_buffer.to_account_info(),
+            from: ctx.accounts.event_authority.to_account_info(),
             to: ctx.accounts.event_address.to_account_info(),
         };
         let cpi_context = anchor_lang::context::CpiContext::new(
@@ -125,22 +120,18 @@ pub mod event_span {
 // TODO: Remove "CHECK:" from system_program
 
 #[derive(Accounts)]
-#[instruction( nonce: u8)]
-pub struct Initialize<'info> {
-    #[account(init, seeds = [STATE_SEED.as_ref()], bump, space = State::LEN, payer = admin)]
-    pub state: AccountLoader<'info, State>,
+pub struct InitEventBuffer<'info> {
+    #[account(init, seeds = [EVENT_BUFFER_SEED.as_ref()], bump, space = EventBuffer::LEN, payer = admin)]
+    pub event_buffer: AccountLoader<'info, EventBuffer>,
     #[account(mut)]
     pub admin: Signer<'info>,
     /// CHECK: safe as seed checked
-    #[account(seeds = [AUTHORITY_SEED.as_ref()], bump = nonce)]
-    pub program_authority: AccountInfo<'info>,
-    /// CHECK: safe as seed checked
     #[account(
         mut,
-        seeds = [EVNET_BUFFER],
+        seeds = [EVENT_AUTHORITY_SEED],
         bump,
     )]
-    pub event_buffer: UncheckedAccount<'info>,
+    pub event_authority: UncheckedAccount<'info>,
     pub rent: Sysvar<'info, Rent>,
     /// CHECK: safe as constant
     #[account(address = system_program::ID)]
@@ -150,13 +141,13 @@ pub struct Initialize<'info> {
 #[derive(Accounts)]
 #[instruction( amount: u64)]
 pub struct DepositEventBuffer<'info> {
-    #[account(seeds = [STATE_SEED.as_ref()], bump = state.load()?.bump)]
-    pub state: AccountLoader<'info, State>,
+    #[account(seeds = [EVENT_BUFFER_SEED.as_ref()], bump = event_buffer.load()?.bump)]
+    pub event_buffer: AccountLoader<'info, EventBuffer>,
     #[account(mut)]
     pub depositor: Signer<'info>,
     /// CHECK: safe as seed checked
-    #[account(mut, seeds = [EVNET_BUFFER], bump = state.load()?.event_buffer_bump)]
-    pub event_buffer: UncheckedAccount<'info>,
+    #[account(mut, seeds = [EVENT_AUTHORITY_SEED], bump = event_buffer.load()?.nonce)]
+    pub event_authority: UncheckedAccount<'info>,
     pub rent: Sysvar<'info, Rent>,
     /// CHECK: safe as constant
     #[account(address = system_program::ID)]
@@ -166,21 +157,17 @@ pub struct DepositEventBuffer<'info> {
 #[derive(Accounts)]
 #[instruction( amount: u64)]
 pub struct WithdrawEventBuffer<'info> {
-    #[account(seeds = [STATE_SEED.as_ref()], bump = state.load()?.bump)]
-    pub state: AccountLoader<'info, State>,
-    #[account(mut, constraint = admin.key() == state.load()?.eventsnap_admin)] // TODO: admin error
+    #[account(seeds = [EVENT_BUFFER_SEED.as_ref()], bump = event_buffer.load()?.bump)]
+    pub event_buffer: AccountLoader<'info, EventBuffer>,
+    #[account(mut, constraint = admin.key() == event_buffer.load()?.admin)]
     pub admin: Signer<'info>,
     /// CHECK: safe as seed checked
-    #[account(mut, seeds = [EVNET_BUFFER], bump = state.load()?.event_buffer_bump)]
-    pub event_buffer: UncheckedAccount<'info>,
+    #[account(mut, seeds = [EVENT_AUTHORITY_SEED], bump = event_buffer.load()?.nonce)]
+    pub event_authority: UncheckedAccount<'info>,
     pub rent: Sysvar<'info, Rent>,
     /// CHECK: safe as constant
     #[account(address = system_program::ID)]
     pub system_program: AccountInfo<'info>,
-
-    /// CHECK: safe as seed checked
-    #[account(mut, seeds = [AUTHORITY_SEED.as_ref()], bump = state.load()?.nonce)]
-    pub program_authority: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
@@ -189,11 +176,11 @@ pub struct TriggerEventsCreation<'info> {
     #[account(mut)]
     pub event_address: AccountInfo<'info>,
 
-    #[account(seeds = [STATE_SEED.as_ref()], bump = state.load()?.bump)]
-    pub state: AccountLoader<'info, State>,
+    #[account(seeds = [EVENT_BUFFER_SEED.as_ref()], bump = event_buffer.load()?.bump)]
+    pub event_buffer: AccountLoader<'info, EventBuffer>,
     /// CHECK: safe as seed checked
-    #[account(mut, seeds = [EVNET_BUFFER.as_ref()], bump = state.load()?.event_buffer_bump)]
-    pub event_buffer: AccountInfo<'info>,
+    #[account(mut, seeds = [EVENT_AUTHORITY_SEED], bump = event_buffer.load()?.nonce)]
+    pub event_authority: UncheckedAccount<'info>,
 
     #[account(mut)]
     pub signer: Signer<'info>,

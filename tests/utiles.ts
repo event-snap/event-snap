@@ -1,43 +1,30 @@
 import { AnchorProvider, utils } from '@project-serum/anchor'
 import { ConfirmOptions, Connection, Keypair, PublicKey, sendAndConfirmRawTransaction, Transaction } from "@solana/web3.js"
 
-export const SEED = 'EVENTSNAP'
-export const STATE_SEED = 'STATE'
-export const EVNET_BUFFER = 'EVENT_BUFFER'
+export const EVENT_BUFFER_SEED = 'EVENT_BUFFER'
+export const EVENT_AUTHORITY_SEED = 'EVENTSNAP'
 export const MOCKED_EVENT_SEED = 'MOCKED_EVENT'
-
-export const getProgramAuthority = async (programId: PublicKey) => {
-    const [programAuthority, nonce] = await PublicKey.findProgramAddress(
-        [Buffer.from(SEED)],
-        programId
-    )
-
-    return {
-        programAuthority,
-        nonce
-    }
-}
-
-export const getStateAddress = async (programId: PublicKey) => {
-    const [address, bump] = await PublicKey.findProgramAddress(
-        [Buffer.from(utils.bytes.utf8.encode(STATE_SEED))],
-        programId
-    )
-
-    return {
-        state: address,
-        bump
-    }
-}
 
 export const getEventBufferAddress = async (programId: PublicKey) => {
     const [address, bump] = await PublicKey.findProgramAddress(
-        [Buffer.from(utils.bytes.utf8.encode(EVNET_BUFFER))],
+        [Buffer.from(utils.bytes.utf8.encode(EVENT_BUFFER_SEED))],
         programId
     )
 
     return {
         eventBuffer: address,
+        bump
+    }
+}
+
+export const getEventAuthorityAddress = async (programId: PublicKey) => {
+    const [address, bump] = await PublicKey.findProgramAddress(
+        [Buffer.from(utils.bytes.utf8.encode(EVENT_AUTHORITY_SEED))],
+        programId
+    )
+
+    return {
+        eventAuthority: address,
         bump
     }
 }
