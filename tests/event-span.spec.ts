@@ -10,13 +10,13 @@ describe("event-span", () => {
   const connection = provider.connection
   const program = anchor.workspace.EventSpan as Program<EventSpan>;
   const admin = Keypair.generate()
-  const noAdmin = Keypair.generate()
+  const notAdmin = Keypair.generate()
   const solAmount = 1e9
   anchor.setProvider(provider);
 
   before(async () => {
     await connection.requestAirdrop(admin.publicKey, solAmount)
-    await connection.requestAirdrop(noAdmin.publicKey, solAmount)
+    await connection.requestAirdrop(notAdmin.publicKey, solAmount)
     await sleep(500)
   })
 
@@ -38,11 +38,10 @@ describe("event-span", () => {
     await signAndSend(new Transaction().add(initIx), [admin], connection)
 
     {
-      const balanceAmount = await connection.getBalance(eventBuffer)
-      const adminAmount = await connection.getBalance(admin.publicKey)
-      console.log(`balance amount = ${balanceAmount}`)
-      console.log(`admin amount = ${adminAmount}`)
+      const eventBufferBalance = await connection.getBalance(eventBuffer)
+      console.log(`balance amount = ${eventBufferBalance}`)
     }
+
 
     const amountToDeposit = new BN(300000000)
     const amountToWithdraw = new BN(300000000).divn(10)
@@ -58,23 +57,22 @@ describe("event-span", () => {
     await signAndSend(new Transaction().add(depositIx), [admin], connection)
 
     {
-      const balanceAmount = await connection.getBalance(eventBuffer)
-      const adminAmount = await connection.getBalance(admin.publicKey)
-      console.log(`balance amount = ${balanceAmount}`)
-      console.log(`admin amount = ${adminAmount}`)
+      const eventBufferBalance = await connection.getBalance(eventBuffer)
+      console.log(`balance amount = ${eventBufferBalance}`)
     }
+
 
     const withdrawByNoAdminIx = program.instruction.withdrawEventBuffer(amountToWithdraw, {
       accounts: {
         state,
         eventBuffer,
-        admin: noAdmin.publicKey,
+        admin: notAdmin.publicKey,
         rent: SYSVAR_RENT_PUBKEY,
         programAuthority,
         systemProgram: SystemProgram.programId
       }
     })
-    await assertThrowsAsync(signAndSend(new Transaction().add(withdrawByNoAdminIx), [noAdmin], connection))
+    await assertThrowsAsync(signAndSend(new Transaction().add(withdrawByNoAdminIx), [notAdmin], connection))
 
     const withdrawByAdminIx = program.instruction.withdrawEventBuffer(amountToWithdraw, {
       accounts: {
@@ -89,31 +87,21 @@ describe("event-span", () => {
     await signAndSend(new Transaction().add(withdrawByAdminIx), [admin], connection)
 
     {
-      const balanceAmount = await connection.getBalance(eventBuffer)
-      const adminAmount = await connection.getBalance(admin.publicKey)
-      console.log(`balance amount = ${balanceAmount}`)
-      console.log(`admin amount = ${adminAmount}`)
+      const eventBufferBalance = await connection.getBalance(eventBuffer)
+      console.log(`balance amount = ${eventBufferBalance}`)
     }
 
-    const { eventAddress, bump } = await getEventAddress(program.programId)
-    console.log(eventAddress.toString())
-    console.log(bump)
-
-    const trigger2Ix = program.instruction.triggerEventsCreationTwo({
+    const { eventAddress } = await getEventAddress(program.programId)
+    const triggerEventIx = program.instruction.triggerEventsCreation({
       accounts: {
         state,
         eventBuffer,
         eventAddress: eventAddress,
-        signer: noAdmin.publicKey,
+        signer: notAdmin.publicKey,
         rent: SYSVAR_RENT_PUBKEY,
         systemProgram: SystemProgram.programId
       },
     })
-    await signAndSend(new Transaction().add(trigger2Ix), [noAdmin], connection)
-
-    await sleep(500)
-
-    const event = await program.account.eventStruct.fetch(eventAddress)
-    console.log(event)
+    await signAndSend(new Transaction().add(triggerEventIx), [notAdmin], connection)
   });
 });
