@@ -205,6 +205,13 @@ pub mod event_span {
         Ok(())
     }
 
+    pub fn check_event_deserialization(ctx: Context<CheckEventDeserialization>) -> Result<()> {
+        let data = &mut *ctx.accounts.event_address.data.borrow_mut();
+        msg!("data = {:?}", data);
+
+        Ok(())
+    }
+
     // pub fn trigger_events_creation(
     //     ctx: Context<TriggerEventsCreation>,
     //     event_seed: u64,
@@ -414,6 +421,16 @@ pub struct TriggerEventsCreationTwo<'info> {
     /// CHECK: safe as constant
     #[account(address = system_program::ID)]
     pub system_program: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct CheckEventDeserialization<'info> {
+    /// CHECK: safe as constant
+    #[account(mut)]
+    pub event_address: AccountInfo<'info>,
+
+    #[account(seeds = [STATE_SEED.as_bytes().as_ref()], bump = state.load()?.bump)]
+    pub state: AccountLoader<'info, State>,
 }
 
 // impl<'info> CreateEvent<'info> for TriggerEventsCreation<'info> {
