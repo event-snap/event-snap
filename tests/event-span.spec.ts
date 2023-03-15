@@ -19,63 +19,59 @@ describe("event-span", () => {
     await sleep(500)
   })
 
-  it("Is initialized!", async () => {
+  it("Event buffer flow", async () => {
     const { eventBuffer } = await getEventBufferAddress(program.programId)
     const { eventAuthority } = await getEventAuthorityAddress(program.programId)
 
-    const initIx = program.instruction.initEventBuffer({
+    await program.rpc.initEventBuffer({
       accounts: {
         eventBuffer,
         eventAuthority,
         admin: admin.publicKey,
         systemProgram: SystemProgram.programId
-      }
+      },
+      signers: [admin]
     })
-    await signAndSend(new Transaction().add(initIx), [admin], connection)
-
     {
       const eventBufferBalance = await connection.getBalance(eventAuthority)
       console.log(`balance amount = ${eventBufferBalance}`)
     }
 
-
     const amountToDeposit = new BN(300000000)
     const amountToWithdraw = new BN(300000000).divn(10)
-    const depositIx = program.instruction.depositEventBuffer(amountToDeposit, {
+    await program.rpc.depositEventBuffer(amountToDeposit, {
       accounts: {
         eventBuffer,
         eventAuthority,
         depositor: admin.publicKey,
         systemProgram: SystemProgram.programId
-      }
+      },
+      signers: [admin]
     })
-    await signAndSend(new Transaction().add(depositIx), [admin], connection)
-
     {
       const eventBufferBalance = await connection.getBalance(eventAuthority)
       console.log(`balance amount = ${eventBufferBalance}`)
     }
 
-
-    const withdrawByNoAdminIx = program.instruction.withdrawEventBuffer(amountToWithdraw, {
+    await assertThrowsAsync(program.rpc.withdrawEventBuffer(amountToWithdraw, {
       accounts: {
         eventBuffer,
         eventAuthority,
         admin: notAdmin.publicKey,
         systemProgram: SystemProgram.programId
-      }
-    })
-    await assertThrowsAsync(signAndSend(new Transaction().add(withdrawByNoAdminIx), [notAdmin], connection))
+      },
+      signers: [notAdmin]
+    }))
 
-    const withdrawByAdminIx = program.instruction.withdrawEventBuffer(amountToWithdraw, {
+    await program.rpc.withdrawEventBuffer(amountToWithdraw, {
       accounts: {
         eventBuffer,
         eventAuthority,
         admin: admin.publicKey,
         systemProgram: SystemProgram.programId
-      }
+      },
+      signers: [admin]
     })
-    await signAndSend(new Transaction().add(withdrawByAdminIx), [admin], connection)
 
     {
       const eventBufferBalance = await connection.getBalance(eventAuthority)
@@ -83,7 +79,7 @@ describe("event-span", () => {
     }
 
     const { eventAddress } = await getEventAddress(program.programId)
-    const triggerEventIx = program.instruction.triggerEventsCreation({
+    await program.rpc.triggerEventsCreation({
       accounts: {
         eventBuffer,
         eventAuthority,
@@ -91,7 +87,7 @@ describe("event-span", () => {
         signer: notAdmin.publicKey,
         systemProgram: SystemProgram.programId
       },
+      signers: [notAdmin]
     })
-    await signAndSend(new Transaction().add(triggerEventIx), [notAdmin], connection)
   });
 });

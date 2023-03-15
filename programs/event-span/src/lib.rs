@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::system_program;
 use structs::EventBuffer;
 
 pub mod interfaces;
@@ -114,24 +113,19 @@ pub mod event_span {
     }
 }
 
-// TODO: rent in not required
-// TODO: passing program_authority is not required
-// TODO: I can use Account with empty strcut insted of UncheckedAccount
-// TODO: Remove "CHECK:" from system_program
-
 #[derive(Accounts)]
 pub struct InitEventBuffer<'info> {
     #[account(init, seeds = [EVENT_BUFFER_SEED.as_ref()], bump, space = EventBuffer::LEN, payer = admin)]
     pub event_buffer: AccountLoader<'info, EventBuffer>,
     #[account(mut)]
     pub admin: Signer<'info>,
-    /// CHECK: safe as seed checked
+    /// CHECK: determinstic authority
     #[account(
         mut,
         seeds = [EVENT_AUTHORITY_SEED],
         bump,
     )]
-    pub event_authority: UncheckedAccount<'info>,
+    pub event_authority: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -142,9 +136,9 @@ pub struct DepositEventBuffer<'info> {
     pub event_buffer: AccountLoader<'info, EventBuffer>,
     #[account(mut)]
     pub depositor: Signer<'info>,
-    /// CHECK: safe as seed checked
+    /// CHECK: determinstic authority
     #[account(mut, seeds = [EVENT_AUTHORITY_SEED], bump = event_buffer.load()?.nonce)]
-    pub event_authority: UncheckedAccount<'info>,
+    pub event_authority: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -155,9 +149,9 @@ pub struct WithdrawEventBuffer<'info> {
     pub event_buffer: AccountLoader<'info, EventBuffer>,
     #[account(mut, constraint = admin.key() == event_buffer.load()?.admin)]
     pub admin: Signer<'info>,
-    /// CHECK: safe as seed checked
+    /// CHECK: determinstic authority
     #[account(mut, seeds = [EVENT_AUTHORITY_SEED], bump = event_buffer.load()?.nonce)]
-    pub event_authority: UncheckedAccount<'info>,
+    pub event_authority: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -166,13 +160,11 @@ pub struct TriggerEventsCreation<'info> {
     /// CHECK: safe as constant
     #[account(mut)]
     pub event_address: AccountInfo<'info>,
-
     #[account(seeds = [EVENT_BUFFER_SEED.as_ref()], bump = event_buffer.load()?.bump)]
     pub event_buffer: AccountLoader<'info, EventBuffer>,
-    /// CHECK: safe as seed checked
+    /// CHECK: determinstic authority
     #[account(mut, seeds = [EVENT_AUTHORITY_SEED], bump = event_buffer.load()?.nonce)]
-    pub event_authority: UncheckedAccount<'info>,
-
+    pub event_authority: AccountInfo<'info>,
     #[account(mut)]
     pub signer: Signer<'info>,
     pub system_program: Program<'info, System>,
