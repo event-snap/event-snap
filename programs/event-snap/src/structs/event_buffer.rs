@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
-
-use crate::size;
+use event_snap_lib::size;
 
 #[account(zero_copy)]
 #[repr(packed)]

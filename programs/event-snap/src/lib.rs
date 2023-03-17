@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 use structs::EventBuffer;
 
 pub mod interfaces;
-mod macros;
 pub mod structs;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
@@ -54,7 +53,8 @@ pub mod event_span {
 
     pub fn withdraw_event_buffer(ctx: Context<WithdrawEventBuffer>, amount: u64) -> Result<()> {
         let event_buffer = ctx.accounts.event_buffer.load()?;
-        let signer: &[&[&[u8]]] = get_signer!(EVENT_AUTHORITY_SEED, event_buffer.nonce);
+        let signer: &[&[&[u8]]] =
+            event_snap_lib::get_signer!(EVENT_AUTHORITY_SEED, event_buffer.nonce);
 
         let ix = system_instruction::transfer(
             &ctx.accounts.event_authority.key(),
