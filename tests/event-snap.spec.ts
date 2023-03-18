@@ -89,5 +89,9 @@ describe("event-snap", () => {
       },
       signers: [notAdmin]
     })
+
+    const event = await program.account.eventStruct.fetch(eventAddress)
+    console.log(event)
+
   });
 });
